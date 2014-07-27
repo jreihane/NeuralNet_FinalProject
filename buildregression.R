@@ -1,17 +1,12 @@
 library(nlme)
+library(gridExtra)
+source("createsampledata.R")
 
 data_csv <- read.csv("coc81.csv")
 
 train_data <- create_train_data(data_csv)
 test_data <- create_test_data(data_csv)
-r_squared <- list()
-
-dependent_variable_name <- "actual_ln"
-independent_variable_names <- c("loc_ln","time_factor","rely_factor","data_factor",
-                                        "cplx_factor","stor_factor","virt_factor","turn_factor",
-                                        "acap_factor","aexp_factor","pcap_factor","vexp_factor",
-                                        "lexp_factor","modp_factor","tool_factor","sced_factor",
-                                        "dev_mode_factor")
+result_coeffs <- list()
 
 test_normality <- function(t){
         t2 <- data.frame(t)
@@ -50,21 +45,46 @@ applyRegression <- function(train_data_item,i){
 #                                 t$acap_factor+t$aexp_factor+t$pcap_factor+t$vexp_factor+
 #                                 t$lexp_factor+t$modp_factor+t$tool_factor+t$sced_factor+
 #                                 t$loc_ln+t$dev_mode_factor)
+        if(i == 1)
+                formula <- t$actual_ln ~ t$rely_factor+t$loc_ln
+        if(i == 2)
+                formula <- t$actual_ln ~ t$time_factor+t$rely_factor+t$data_factor+
+                                t$stor_factor+t$virt_factor+t$acap_factor+t$pcap_factor+
+                                t$modp_factor+t$loc_ln+t$dev_mode_factor
+        if(i == 3)
+                formula <- t$actual_ln ~ +t$rely_factor+t$acap_factor+t$loc_ln
+        if(i == 4)
+                formula <- t$actual_ln ~ t$time_factor+t$rely_factor+t$acap_factor+
+                                t$lexp_factor+t$modp_factor+t$loc_ln
+        if(i == 5)
+                formula <- t$actual_ln ~ t$acap_factor+t$dev_mode_factor+t$loc_ln
+        if(i == 6)
+                formula <- t$actual_ln ~ t$time_factor+t$rely_factor+
+                t$acap_factor+t$modp_factor+t$dev_mode_factor+t$loc_ln
 
-        multi_fit <- lm(t$actual_ln ~ t$time_factor+t$rely_factor+t$data_factor+
-                        t$cplx_factor+t$stor_factor+t$virt_factor+t$turn_factor+
-                        t$acap_factor+t$aexp_factor+t$pcap_factor+t$vexp_factor+
-                        t$lexp_factor+t$modp_factor+t$tool_factor+t$sced_factor+
-                        t$loc_ln+t$dev_mode_factor)
-
+        multi_fit <- lm(formula)
         multi_fit_sum <- summary(multi_fit)
-        r_squared <<- c(r_squared,(multi_fit_sum$r.squared))
-print(names(multi_fit_sum))
-print(multi_fit_sum$coefficients)
+
+        coeffs <- t(multi_fit_sum$coefficients[,1])
+        coeff_frame <- data.frame(coeffs,row.names = NULL)
+# print(colnames(coeffs))
+#         colnames(coeff_frame) <- row.names(coeffs)
+#         if(is.null(result_coeffs)) result_coeffs <<- c(coeff_frame)
+#         else result_coeffs <<- c(result_coeffs,coeff_frame)
+        result_coeffs <<- c(result_coeffs,coeff_frame)
+#         result_coeffs[i] <<- coeff_frame
+#         print(result_coeffs[[1]]$loc_ln)
+#         print(names(multi_fit_sum))
+#         print((multi_fit_sum$coefficients))
+        
+        pdf(paste("results\\regression\\coefficients_dataset_",i,".pdf",sep=""), height=nrow(coeffs)/2, width=10)
+        grid.table(coeffs)
+        dev.off()
 }
 
 # tt <- train_data[2]
-applyRegression(train_data[1],1)
-# x <- mapply(applyRegression,train_data,seq_along(train_data),SIMPLIFY = F)
+# applyRegression(train_data[3],3)
+x <- mapply(applyRegression,train_data,seq_along(train_data),SIMPLIFY = F)
 
-
+print(result_coeffs[1]$loc_ln)
+# print(data.frame(result_coeffs[1]))
