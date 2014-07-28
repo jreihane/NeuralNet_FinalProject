@@ -3,10 +3,7 @@ library(gridExtra)
 source("createsampledata.R")
 source("calculateerror.R")
 
-data_csv <- read.csv("coc81.csv")
 
-train_data <- create_train_data(data_csv)
-test_data <- create_test_data(data_csv)
 # result_coeffs1 <- NULL
 # result_coeffs2 <- NULL
 # result_coeffs3 <- NULL
@@ -17,6 +14,7 @@ result_coeffs <- list()#c(result_coeffs1,result_coeffs2,result_coeffs3,result_co
 # result_coeffs <- vector("frame")
 lm_list <- list()
 final_result_pdf <- matrix(nrow = 11,ncol=0)
+r2 <- list()
 
 test_normality <- function(t){
         t2 <- data.frame(t)
@@ -83,12 +81,17 @@ applyRegression <- function(train_data_item,i){
         
         #         result_coeffs[i] <<- coeff_frame
         multi_fit_sum <- summary(multi_fit)
+
+        r2 <<- rbind(r2,multi_fit_sum$r.squared)
+
         coeffs <- multi_fit_sum$coefficients[,1]
         h <- nrow(t)/2
         pdf(paste("results\\regression\\coefficients_dataset_",i,".pdf",sep=""), height=h, width=10)
         grid.table(coeffs)
         dev.off()
+
 }
+
 testRegression <- function(test_data_item,i){
         t <- data.frame(test_data_item, row.names = NULL)
 #         tt2 <- tt[,c('rely_factor','loc_ln','actual_ln')]
@@ -108,18 +111,31 @@ testRegression <- function(test_data_item,i){
         dev.off()
 }
 
-x1 <- mapply(applyRegression,train_data,seq_along(train_data),SIMPLIFY = F)
-x2 <- mapply(testRegression,test_data,seq_along(test_data),SIMPLIFY = F)
+doRegression <- function(train_data,test_data){
+        x1 <- mapply(applyRegression,train_data,seq_along(train_data),SIMPLIFY = F)
+        x2 <- mapply(testRegression,test_data,seq_along(test_data),SIMPLIFY = F)
+        
+        results <- data.frame(final_result_pdf,row.names=NULL)
+        colnames(results) <- c("Conj1_Obs","Conj1_Est","Conj2_Obs","Conj2_Est","Conj3_Obs","Conj3_Est","Conj4_Obs","Conj4_Est","Conj5_Obs","Conj5_Est","Conj6_Obs","Conj6_Est")
+        
+        pdf("results\\regression\\data_output.pdf", height=5, width=17)
+        grid.table(results)
+        dev.off()
+        
+        results
+#         calculateError(results)
+}
+
+calculateRegError <- function(result_data){
+        error_rate <- calculateMMRE(result_data)
+        error_rate
+}
+getRegR2 <- function(){
+        r2
+}
+
+# doRegression(train_data,test_data)
 # applyRegression(train_data[1],1)
 # testRegression(test_data[1],1)
 
-results <- data.frame(final_result_pdf,row.names=NULL)
-colnames(results) <- c("Conj1_Obs","Conj1_Est","Conj2_Obs","Conj2_Est","Conj3_Obs","Conj3_Est","Conj4_Obs","Conj4_Est","Conj5_Obs","Conj5_Est","Conj6_Obs","Conj6_Est")
-
-pdf("results\\regression\\data_output.pdf", height=5, width=17)
-grid.table(results)
-dev.off()
-
-
-error_rate <- calculateMMRE(results)
-print(error_rate)
+# print(r2)

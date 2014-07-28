@@ -15,23 +15,13 @@ calculateMMRE <- function(data){
                 var_est_name <- paste('Conj',data_set,'_Est',sep='')
                 sum <- 0
                 for(row in 1:nrow(data)){
-#                         print('------------------------------------')
-#                         print(data[row,var_obs_name])
                         if(!is.na(data[row,var_obs_name]) && !is.na(data[row,var_est_name])){
-#                                 print(data[row,var_obs_name])
-#                                 print(data[row,var_est_name])
                                 for_sum <- abs(data[row,var_obs_name] - data[row,var_est_name]) / data[row,var_obs_name]
                                 sum <- sum + for_sum
-#                                 print('------------------------------------')
-#                                 print(for_sum)
-#                                 print(sum)
                         }
-                        
-                        
                 }
                 
                 res <- (sum * 100) / nrow(data)
-#                 print(res)
                 result <- rbind(result,res)
         }
 
