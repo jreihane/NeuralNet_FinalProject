@@ -1,12 +1,22 @@
 library(nlme)
 library(gridExtra)
 source("createsampledata.R")
+source("calculateerror.R")
 
 data_csv <- read.csv("coc81.csv")
 
 train_data <- create_train_data(data_csv)
 test_data <- create_test_data(data_csv)
-result_coeffs <- list()
+# result_coeffs1 <- NULL
+# result_coeffs2 <- NULL
+# result_coeffs3 <- NULL
+# result_coeffs4 <- NULL
+# result_coeffs5 <- NULL
+# result_coeffs6 <- NULL
+result_coeffs <- list()#c(result_coeffs1,result_coeffs2,result_coeffs3,result_coeffs4,result_coeffs5,result_coeffs6)
+# result_coeffs <- vector("frame")
+lm_list <- list()
+final_result_pdf <- matrix(nrow = 11,ncol=0)
 
 test_normality <- function(t){
         t2 <- data.frame(t)
@@ -25,7 +35,7 @@ test_normality <- function(t){
 }
 
 applyRegression <- function(train_data_item,i){
-        t <- data.frame(train_data_item)
+        t <- data.frame(train_data_item, row.names = NULL)
         
 #         par(mfrow=c(1,1))
 #         x <- qqnorm(t$actual_ln,datax = T)
@@ -46,45 +56,70 @@ applyRegression <- function(train_data_item,i){
 #                                 t$lexp_factor+t$modp_factor+t$tool_factor+t$sced_factor+
 #                                 t$loc_ln+t$dev_mode_factor)
         if(i == 1)
-                formula <- t$actual_ln ~ t$rely_factor+t$loc_ln
+                formula <- actual_ln ~ rely_factor+loc_ln
+#                 formula <- t$actual_ln ~ t$rely_factor+t$loc_ln
         if(i == 2)
-                formula <- t$actual_ln ~ t$time_factor+t$rely_factor+t$data_factor+
-                                t$stor_factor+t$virt_factor+t$acap_factor+t$pcap_factor+
-                                t$modp_factor+t$loc_ln+t$dev_mode_factor
+                formula <- actual_ln ~ time_factor+rely_factor+data_factor+
+                                stor_factor+virt_factor+acap_factor+pcap_factor+
+                                modp_factor+loc_ln+dev_mode_factor
         if(i == 3)
-                formula <- t$actual_ln ~ +t$rely_factor+t$acap_factor+t$loc_ln
+                formula <- actual_ln ~ +rely_factor+acap_factor+loc_ln
         if(i == 4)
-                formula <- t$actual_ln ~ t$time_factor+t$rely_factor+t$acap_factor+
-                                t$lexp_factor+t$modp_factor+t$loc_ln
+                formula <- actual_ln ~ time_factor+rely_factor+acap_factor+
+                                lexp_factor+modp_factor+loc_ln
         if(i == 5)
-                formula <- t$actual_ln ~ t$acap_factor+t$dev_mode_factor+t$loc_ln
+                formula <- actual_ln ~ acap_factor+dev_mode_factor+loc_ln
         if(i == 6)
-                formula <- t$actual_ln ~ t$time_factor+t$rely_factor+
-                t$acap_factor+t$modp_factor+t$dev_mode_factor+t$loc_ln
+                formula <- actual_ln ~ time_factor+rely_factor+acap_factor+
+                                modp_factor+dev_mode_factor+loc_ln
 
-        multi_fit <- lm(formula)
-        multi_fit_sum <- summary(multi_fit)
+        multi_fit <- lm(formula, data = t)
 
-        coeffs <- t(multi_fit_sum$coefficients[,1])
-        coeff_frame <- data.frame(coeffs,row.names = NULL)
-# print(colnames(coeffs))
-#         colnames(coeff_frame) <- row.names(coeffs)
-#         if(is.null(result_coeffs)) result_coeffs <<- c(coeff_frame)
-#         else result_coeffs <<- c(result_coeffs,coeff_frame)
-        result_coeffs <<- c(result_coeffs,coeff_frame)
-#         result_coeffs[i] <<- coeff_frame
-#         print(result_coeffs[[1]]$loc_ln)
-#         print(names(multi_fit_sum))
-#         print((multi_fit_sum$coefficients))
+        lm_list[[i]] <<- multi_fit
+
+#         coeff_frame <- data.frame(coeffs,row.names = names(coeffs))
+#         row.names(coeff_frame) <- names(coeffs)
+#         result_coeffs[[i]] <<- list(coeff_frame)
         
-        pdf(paste("results\\regression\\coefficients_dataset_",i,".pdf",sep=""), height=nrow(coeffs)/2, width=10)
+        #         result_coeffs[i] <<- coeff_frame
+        multi_fit_sum <- summary(multi_fit)
+        coeffs <- multi_fit_sum$coefficients[,1]
+        h <- nrow(t)/2
+        pdf(paste("results\\regression\\coefficients_dataset_",i,".pdf",sep=""), height=h, width=10)
         grid.table(coeffs)
         dev.off()
 }
+testRegression <- function(test_data_item,i){
+        t <- data.frame(test_data_item, row.names = NULL)
+#         tt2 <- tt[,c('rely_factor','loc_ln','actual_ln')]
+        predicted_ln <- predict(object = lm_list[[i]],newdata = t,interval = "prediction")
+        predicted <- exp(predicted_ln[,'fit'])
+        actual <- t[,'actual']
+        com_res <- data.frame(actual, predicted)
 
-# tt <- train_data[2]
-# applyRegression(train_data[3],3)
-x <- mapply(applyRegression,train_data,seq_along(train_data),SIMPLIFY = F)
+        if(nrow(com_res) < 11) com_res <- rbind(com_res,NA)
 
-print(result_coeffs[1]$loc_ln)
-# print(data.frame(result_coeffs[1]))
+        final_result_pdf <<- cbind(final_result_pdf, com_res)
+        
+
+        h <- nrow(t)/2
+        pdf(paste("results\\regression\\predicted_dataset_",i,".pdf",sep=""), height=h, width=7)
+        grid.table(com_res)
+        dev.off()
+}
+
+x1 <- mapply(applyRegression,train_data,seq_along(train_data),SIMPLIFY = F)
+x2 <- mapply(testRegression,test_data,seq_along(test_data),SIMPLIFY = F)
+# applyRegression(train_data[1],1)
+# testRegression(test_data[1],1)
+
+results <- data.frame(final_result_pdf,row.names=NULL)
+colnames(results) <- c("Conj1_Obs","Conj1_Est","Conj2_Obs","Conj2_Est","Conj3_Obs","Conj3_Est","Conj4_Obs","Conj4_Est","Conj5_Obs","Conj5_Est","Conj6_Obs","Conj6_Est")
+
+pdf("results\\regression\\data_output.pdf", height=5, width=17)
+grid.table(results)
+dev.off()
+
+
+error_rate <- calculateMMRE(results)
+print(error_rate)

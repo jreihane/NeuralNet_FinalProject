@@ -116,8 +116,8 @@ data[which(data$dev_mode == "embedded"),"dev_mode_factor"] <- 3
 # logarithmic change of big numbers
 data[,"actual_log"] <- log10(data[,"actual"])
 data[,"loc_log"] <- log10(data[,"loc"])
-data[,"actual_ln"] <- logb(data[,"actual"],base = exp(2))
-data[,"loc_ln"] <- logb(data[,"loc"], base = exp(2))
+data[,"actual_ln"] <- logb(data[,"actual"],base = exp(1))
+data[,"loc_ln"] <- logb(data[,"loc"], base = exp(1))
 
 
 write.csv(data, "coc81.csv",row.names=FALSE,sep=",")
