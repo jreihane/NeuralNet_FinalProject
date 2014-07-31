@@ -25,7 +25,7 @@ applyNet <- function(train_data_item,i){
                             acap_factor+aexp_factor+pcap_factor+vexp_factor+
                             lexp_factor+modp_factor+tool_factor+sced_factor+
                             loc_log+dev_mode_factor,size=23,
-                            data = train_data_item, linout=T, maxit = 300,trace=F)
+                            data = train_data_item, linout=T, maxit = 25,trace=F)
 #         print(net)
         net_list[[i]] <<- net
 }
@@ -50,7 +50,7 @@ testNet <- function(test_data_item,i){
         
         Est_log <- pr
         estimated_values <- cbind(estimated_values, Est_log)
-        Est <- 10 ^ pr
+        Est <- (10 ^ pr)# exp(pr)
         estimated_values <- cbind(estimated_values, Est)
         estimated_values <- cbind(estimated_values, t$actual_log)
         estimated_values <- cbind(estimated_values, t$actual)
@@ -73,13 +73,16 @@ calculateNNError <- function(result_data){
 }
 
 doNNCal <- function(train_data,test_data){
+        results <<- matrix(nrow = 11,ncol=0)
+        
         x1 <- mapply(applyNet,train_data,seq_along(train_data),SIMPLIFY = F)
         x2 <- mapply(testNet,test_data,seq_along(test_data),SIMPLIFY = F)
         
         results <- data.frame(results,row.names=NULL)
         colnames(results) <- c("Conj1_Obs","Conj1_Est","Conj2_Obs","Conj2_Est","Conj3_Obs","Conj3_Est","Conj4_Obs","Conj4_Est","Conj5_Obs","Conj5_Est","Conj6_Obs","Conj6_Est")
         
-        pdf("results\\nn\\data_output.pdf", height=5, width=20)
+#         print(ncol(results))
+        pdf("results\\nn\\data_output5.pdf", height=5, width=20)
         grid.table(results)
         dev.off()
         

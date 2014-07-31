@@ -84,9 +84,11 @@ applyRegression <- function(train_data_item,i){
 
         r2 <<- rbind(r2,multi_fit_sum$r.squared)
 
-        coeffs <- multi_fit_sum$coefficients[,1]
+        coeffs <- data.frame(multi_fit_sum$coefficients[,1])
+        colnames(coeffs) <- NULL
+
         h <- nrow(t)/2
-        pdf(paste("results\\regression\\coefficients_dataset_",i,".pdf",sep=""), height=h, width=10)
+        pdf(paste("results\\regression\\coefficients_dataset_",i,".pdf",sep=""), height=4, width=10)
         grid.table(coeffs)
         dev.off()
 
@@ -130,8 +132,18 @@ calculateRegError <- function(result_data){
         error_rate <- calculateMMRE(result_data)
         error_rate
 }
-getRegR2 <- function(){
-        r2
+getRegR2 <- function(data){
+        r2_list <- list()
+        for(data_set in 1:6){
+                var_obs_name <- paste('Conj',data_set,'_Obs',sep='')
+                var_est_name <- paste('Conj',data_set,'_Est',sep='')
+                
+                fit <- lm(data[,var_obs_name]~data[,var_est_name])
+                
+                r2 <- summary(fit)$r.squared
+                r2_list <- rbind(r2_list,r2)
+        }
+        r2_list
 }
 
 # doRegression(train_data,test_data)
